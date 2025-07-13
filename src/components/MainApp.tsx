@@ -401,7 +401,7 @@ function Dashboard() {
       {/* Luxurious Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.logo}>✨ Neura</Text>
+          <Text style={styles.headerLogo}>✨ Neura</Text>
           <View style={styles.luxuryBadge}>
             <Text style={styles.luxuryBadgeText}>AI</Text>
           </View>
@@ -427,7 +427,7 @@ function Dashboard() {
 
         {/* Task Management */}
         <View style={styles.modernTaskSection}>
-          <View style={styles.taskHeader}>
+          <View style={styles.modernTaskHeader}>
             <Text style={styles.taskHeaderTitle}>Today's Tasks</Text>
             <TouchableOpacity
               onPress={() => setShowCreateTaskForm(true)}
@@ -701,17 +701,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.md,
   },
-  logo: {
+  headerLogo: {
     fontSize: Typography.xl2,
     fontWeight: 'bold',
     color: Colors.primary,
   },
   luxuryBadge: {
-    backgroundColor: Colors.gold,
+    backgroundColor: Colors.warning,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: 12,
-    shadowColor: Colors.gold,
+    shadowColor: Colors.warning,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -1125,7 +1125,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginBottom: Spacing.lg,
   },
-  taskHeader: {
+  modernTaskHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "y",
+      "bundleIdentifier": "com.neura.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -34,11 +34,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
-          "color": "#ffffff",
-          "sounds": [
-            "./assets/notification-sound.wav"
-          ]
+          "icon": "./assets/icon.png",
+          "color": "#ffffff"
         }
       ]
     ],

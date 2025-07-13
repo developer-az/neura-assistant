@@ -85,18 +85,40 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     );
   };
 
-  const handleDelete = () => {
-    console.log('TaskItem: Delete button pressed for task:', task.id);
-    console.log('TaskItem: onDelete function exists:', !!onDelete);
-    
-    if (!onDelete) {
-      console.error('TaskItem: No onDelete function provided!');
-      return;
-    }
-    
-    console.log('TaskItem: Calling onDelete with task ID:', task.id);
-    onDelete(task.id);
-  };
+// In src/components/features/tasks/TaskItem.tsx
+// Find the handleDelete function and replace it with this:
+
+const handleDelete = () => {
+  console.log('TaskItem: Delete button pressed for task:', task.id);
+  console.log('TaskItem: onDelete function exists:', !!onDelete);
+  
+  if (!onDelete) {
+    console.error('TaskItem: No onDelete function provided!');
+    Alert.alert(
+      'Error',
+      'Delete functionality is not available.',
+      [{ text: 'OK' }]
+    );
+    return;
+  }
+
+  // Show confirmation dialog
+  Alert.alert(
+    'Delete Task',
+    `Are you sure you want to delete "${task.title}"? This action cannot be undone.`,
+    [
+      { text: 'Cancel', style: 'cancel' },
+      { 
+        text: 'Delete', 
+        style: 'destructive',
+        onPress: () => {
+          console.log('TaskItem: User confirmed deletion, calling onDelete');
+          onDelete(task.id);  // <-- THIS IS THE KEY FIX! The original code was missing this call
+        }
+      },
+    ]
+  );
+};
 
   const getDifficultyColor = (level: number) => {
     if (level <= 2) return Colors.success;
@@ -193,12 +215,12 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 ⏱️ {task.estimatedDurationMinutes}min
               </Text>
             )}
-            {task.streakCount > 0 && (
+            {(task.streakCount ?? 0) > 0 && (
               <Text style={styles.streakText}>
                 🔥 {task.streakCount} day streak
               </Text>
             )}
-            {task.completionCount > 0 && (
+            {(task.completionCount ?? 0) > 0 && (
               <Text style={styles.completionCountText}>
                 ✅ Completed {task.completionCount} times
               </Text>
