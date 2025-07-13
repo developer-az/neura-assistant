@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { Task, RecurrenceConfig, TaskCompletion } from '../types';
+import { Task, RecurrenceConfig } from '../types';
 
 export interface NewTask {
   user_id: string;
@@ -11,6 +11,7 @@ export interface NewTask {
   estimated_duration_minutes?: number | null;
   difficulty_level?: number;
   energy_requirement?: 'low' | 'medium' | 'high';
+  status?: 'pending' | 'in_progress' | 'completed' | 'skipped';
   is_recurring?: boolean;
   recurrence_pattern?: 'daily' | 'weekly' | 'monthly' | 'custom' | null;
   recurrence_config?: RecurrenceConfig | null;
@@ -37,6 +38,36 @@ export interface UpdateTask {
   average_completion_time_minutes?: number;
 }
 
+// Transform database snake_case to TypeScript camelCase
+const transformTaskData = (dbTask: any): Task => {
+  return {
+    id: dbTask.id,
+    userId: dbTask.user_id,
+    goalId: dbTask.goal_id,
+    title: dbTask.title,
+    description: dbTask.description,
+    scheduledFor: dbTask.scheduled_for,
+    estimatedDurationMinutes: dbTask.estimated_duration_minutes,
+    difficultyLevel: dbTask.difficulty_level,
+    energyRequirement: dbTask.energy_requirement,
+    status: dbTask.status,
+    completedAt: dbTask.completed_at,
+    skippedAt: dbTask.skipped_at,
+    aiGenerated: dbTask.ai_generated,
+    context: dbTask.context || {},
+    createdAt: dbTask.created_at,
+    updatedAt: dbTask.updated_at,
+    // Additional fields for recurring tasks
+    isRecurring: dbTask.is_recurring,
+    recurrencePattern: dbTask.recurrence_pattern,
+    recurrenceConfig: dbTask.recurrence_config,
+    streakCount: dbTask.streak_count,
+    completionCount: dbTask.completion_count,
+    totalCompletionTimeMinutes: dbTask.total_completion_time_minutes,
+    averageCompletionTimeMinutes: dbTask.average_completion_time_minutes,
+  };
+};
+
 export function useTasks(userId: string | undefined) {
   const queryClient = useQueryClient();
 
@@ -60,7 +91,9 @@ export function useTasks(userId: string | undefined) {
         .order('scheduled_for', { ascending: true });
 
       if (error) throw error;
-      return data as (Task & { goal?: any })[];
+      
+      // Transform the data from snake_case to camelCase
+      return (data || []).map(transformTaskData);
     },
     enabled: !!userId,
   });
@@ -98,22 +131,60 @@ export function useTasks(userId: string | undefined) {
   // Get recurring tasks
   const recurringTasks = tasks.filter(task => task.isRecurring);
 
-  // Create new task
+  // Create new task - COMPLETELY REMADE
   const createTaskMutation = useMutation({
     mutationFn: async (newTask: NewTask) => {
+      // Validate required fields
+      if (!newTask.user_id) {
+        throw new Error('User ID is required');
+      }
+      if (!newTask.title || newTask.title.trim() === '') {
+        throw new Error('Task title is required');
+      }
+
+      // Clean and validate the task data
+      const cleanedTask = {
+        user_id: newTask.user_id,
+        title: newTask.title.trim(),
+        description: newTask.description?.trim() || null,
+        goal_id: newTask.goal_id || null,
+        scheduled_for: newTask.scheduled_for || null,
+        estimated_duration_minutes: newTask.estimated_duration_minutes || 30,
+        difficulty_level: Math.max(1, Math.min(5, newTask.difficulty_level || 2)),
+        energy_requirement: newTask.energy_requirement || 'medium',
+        status: 'pending',
+        is_recurring: newTask.is_recurring || false,
+        recurrence_pattern: newTask.is_recurring ? newTask.recurrence_pattern : null,
+        recurrence_config: newTask.is_recurring ? newTask.recurrence_config : null,
+        ai_generated: false,
+        context: {}
+      };
+
+      // Insert task into database
       const { data, error } = await supabase
         .from('tasks')
-        .insert(newTask)
+        .insert(cleanedTask)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(`Failed to create task: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('Failed to create task: No data returned');
+      }
+
       return data;
     },
     onSuccess: () => {
+      // Refresh task and goal queries
       queryClient.invalidateQueries({ queryKey: ['tasks', userId] });
       queryClient.invalidateQueries({ queryKey: ['goals', userId] });
     },
+    onError: (error) => {
+      console.error('Create task error:', error);
+    }
   });
 
   // Complete task with satisfaction rating
@@ -183,11 +254,11 @@ export function useTasks(userId: string | undefined) {
   const createNextRecurrence = async (completedTask: Task) => {
     if (!completedTask.recurrencePattern || !completedTask.scheduledFor) return;
 
-    const nextDate = calculateNextOccurrence(
-      new Date(completedTask.scheduledFor),
-      completedTask.recurrencePattern,
-      completedTask.recurrenceConfig
-    );
+          const nextDate = calculateNextOccurrence(
+        new Date(completedTask.scheduledFor),
+        completedTask.recurrencePattern!,
+        completedTask.recurrenceConfig || undefined
+      );
 
     if (nextDate) {
       const nextTask: NewTask = {
@@ -287,23 +358,49 @@ export function useTasks(userId: string | undefined) {
     },
   });
 
-  // Delete task
+  // Delete task - COMPLETELY REMADE  
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
-      if (!userId) throw new Error('User ID required');
+      // Validate inputs
+      if (!taskId || taskId.trim() === '') {
+        throw new Error('Task ID is required');
+      }
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
 
-      const { error } = await supabase
+      // Verify task exists and belongs to user
+      const { data: existingTask, error: fetchError } = await supabase
+        .from('tasks')
+        .select('id, title')
+        .eq('id', taskId)
+        .eq('user_id', userId)
+        .single();
+
+      if (fetchError || !existingTask) {
+        throw new Error('Task not found or does not belong to user');
+      }
+
+      // Delete the task
+      const { error: deleteError } = await supabase
         .from('tasks')
         .delete()
         .eq('id', taskId)
         .eq('user_id', userId);
 
-      if (error) throw error;
-      return taskId;
+      if (deleteError) {
+        throw new Error(`Failed to delete task: ${deleteError.message}`);
+      }
+
+      return { id: taskId, title: existingTask.title };
     },
     onSuccess: () => {
+      // Refresh task queries
       queryClient.invalidateQueries({ queryKey: ['tasks', userId] });
     },
+    onError: (error) => {
+      console.error('Delete task error:', error);
+    }
   });
 
   // Reschedule overdue task to next available time
@@ -413,20 +510,20 @@ export function useTasks(userId: string | undefined) {
     isLoading,
     error,
     
-    // Mutations
+    // Task operations
     createTask: createTaskMutation.mutate,
+    deleteTask: deleteTaskMutation.mutate,
     completeTask: completeTaskMutation.mutate,
     skipTask: skipTaskMutation.mutate,
     updateTask: updateTaskMutation.mutate,
-    deleteTask: deleteTaskMutation.mutate,
     rescheduleTask: rescheduleTaskMutation.mutate,
     
-    // Mutation states
+    // Loading states
     isCreating: createTaskMutation.isPending,
+    isDeleting: deleteTaskMutation.isPending,
     isCompleting: completeTaskMutation.isPending,
     isSkipping: skipTaskMutation.isPending,
     isUpdating: updateTaskMutation.isPending,
-    isDeleting: deleteTaskMutation.isPending,
     isRescheduling: rescheduleTaskMutation.isPending,
   };
 }

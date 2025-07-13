@@ -62,6 +62,14 @@ export interface Task {
   context: TaskContext;
   createdAt: string;
   updatedAt: string;
+  // Additional fields for recurring tasks
+  isRecurring?: boolean;
+  recurrencePattern?: 'daily' | 'weekly' | 'monthly' | 'custom' | null;
+  recurrenceConfig?: RecurrenceConfig | null;
+  streakCount?: number;
+  completionCount?: number;
+  totalCompletionTimeMinutes?: number;
+  averageCompletionTimeMinutes?: number;
 }
 
 export interface TaskContext {
@@ -70,6 +78,23 @@ export interface TaskContext {
   locationPreference?: string;
   prerequisites?: string[];
   motivationBooster?: string;
+  lastSatisfaction?: number;
+  lastNotes?: string;
+  completionHistory?: Array<{
+    completedAt: string;
+    satisfaction: number;
+    notes?: string;
+    timeSpent: number;
+  }>;
+  skipReason?: string;
+}
+
+export interface RecurrenceConfig {
+  interval?: number;
+  endDate?: string;
+  maxOccurrences?: number;
+  daysOfWeek?: number[];
+  dayOfMonth?: number;
 }
 
 export type GoalCategory = 

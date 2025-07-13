@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import MainApp from './src/components/MainApp';
+import SimpleDeleteTest from './src/components/features/tasks/SimpleDeleteTest';
 
 // Create a client with optimized settings
 const queryClient = new QueryClient({

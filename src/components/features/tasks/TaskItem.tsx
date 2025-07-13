@@ -86,20 +86,16 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   };
 
   const handleDelete = () => {
-    if (!onDelete) return;
+    console.log('TaskItem: Delete button pressed for task:', task.id);
+    console.log('TaskItem: onDelete function exists:', !!onDelete);
     
-    Alert.alert(
-      'Delete Task',
-      'Are you sure you want to delete this task? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: () => onDelete(task.id)
-        },
-      ]
-    );
+    if (!onDelete) {
+      console.error('TaskItem: No onDelete function provided!');
+      return;
+    }
+    
+    console.log('TaskItem: Calling onDelete with task ID:', task.id);
+    onDelete(task.id);
   };
 
   const getDifficultyColor = (level: number) => {
@@ -172,7 +168,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             <Text style={styles.energyIcon}>{getEnergyIcon(task.energyRequirement)}</Text>
             {onDelete && (
               <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
-                <Text style={styles.deleteButtonText}>🗑️</Text>
+                <Text style={styles.deleteButtonText}>🗑️ DELETE</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -544,11 +540,17 @@ const styles = StyleSheet.create({
     color: Colors.background,
   },
   deleteButton: {
-    padding: Spacing.xs,
+    backgroundColor: Colors.danger,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: 8,
-    backgroundColor: Colors.danger + '15',
+    marginLeft: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.danger,
   },
   deleteButtonText: {
+    color: Colors.background,
     fontSize: Typography.sm,
+    fontWeight: 'bold',
   },
 }); 

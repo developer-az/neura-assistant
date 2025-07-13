@@ -10,6 +10,8 @@ interface ButtonProps {
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
   style?: ViewStyle;
+  loading?: boolean;
+  textStyle?: TextStyle;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -19,6 +21,8 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'medium',
   disabled = false,
   style,
+  loading = false,
+  textStyle,
 }) => {
   return (
     <TouchableOpacity
@@ -26,14 +30,16 @@ export const Button: React.FC<ButtonProps> = ({
         styles.button,
         styles[variant],
         styles[size],
-        disabled && styles.disabled,
+        (disabled || loading) && styles.disabled,
         style,
       ]}
       onPress={onPress}
-      disabled={disabled}
+      disabled={disabled || loading}
       activeOpacity={0.8}
     >
-      <Text style={[styles.text, styles[`${variant}Text`]]}>{title}</Text>
+      <Text style={[styles.text, styles[`${variant}Text`], textStyle]}>
+        {loading ? 'Loading...' : title}
+      </Text>
     </TouchableOpacity>
   );
 };

@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "y",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,9 +36,16 @@
         {
           "icon": "./assets/notification-icon.png",
           "color": "#ffffff",
-          "sounds": ["./assets/notification-sound.wav"]
+          "sounds": [
+            "./assets/notification-sound.wav"
+          ]
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c29dbcb9-babb-4264-a5ed-657799ef4cbe"
+      }
+    }
   }
 }

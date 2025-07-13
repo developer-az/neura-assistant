@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../hooks/useAuth';
 import { useTasks } from '../hooks/useTasks';
 import { useGoals } from '../hooks/useGoals';
 import { useInsights } from '../hooks/useInsights';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button, Input, Card } from './ui';
 import { InsightsCard } from './features/insights/InsightsCard';
 import { Colors, Typography, Spacing } from '../utils/constants';
@@ -24,6 +26,9 @@ import { CreateTaskForm } from './features/tasks/CreateTaskForm';
 import { AchievementCard } from './features/tasks/AchievementCard';
 import { TaskHistoryModal } from './features/tasks/TaskHistoryModal';
 import { QuickAddTask } from './features/tasks/QuickAddTask';
+import { ModernTaskList } from './features/tasks/ModernTaskList';
+import { QuickTaskCreator } from './features/tasks/QuickTaskCreator';
+
 
 // Authentication Component
 function AuthScreen() {
@@ -236,6 +241,7 @@ function CreateGoalForm({ onClose, onSubmit }: { onClose: () => void; onSubmit: 
 // Main Dashboard Component
 function Dashboard() {
   const { user, signOut } = useAuth();
+  const queryClient = useQueryClient();
   const { 
     tasks,
     todaysTasks, 
@@ -266,6 +272,7 @@ function Dashboard() {
   
 
   const [showCreateGoalForm, setShowCreateGoalForm] = useState(false);
+  const [showCreateTaskForm, setShowCreateTaskForm] = useState(false);
   const [showTaskHistoryModal, setShowTaskHistoryModal] = useState(false);
 
   // Initialize notifications when component mounts
@@ -329,7 +336,25 @@ function Dashboard() {
   };
 
   const handleDeleteTask = (taskId: string) => {
-    deleteTask(taskId);
+    console.log('MainApp handleDeleteTask called with:', taskId);
+    const taskToDelete = tasks.find(task => task.id === taskId);
+    console.log('Task to delete:', taskToDelete);
+    
+    Alert.alert(
+      'Delete Task',
+      `Are you sure you want to delete "${taskToDelete?.title || 'this task'}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => {
+            console.log('Delete confirmed, calling deleteTask function');
+            deleteTask(taskId);
+          }
+        },
+      ]
+    );
   };
 
   const handleGenerateInsights = () => {
@@ -400,31 +425,64 @@ function Dashboard() {
           }}
         />
 
-        {/* Quick Add Task - Game-like Experience */}
-        <QuickAddTask
-          onSubmit={(taskData) => {
-            if (!user?.id) return;
-            
-            createTask({
-              ...taskData,
-              user_id: user.id,
-              status: 'pending',
-            });
-          }}
-          isLoading={isCreatingTask}
-        />
+        {/* Task Management */}
+        <View style={styles.modernTaskSection}>
+          <View style={styles.taskHeader}>
+            <Text style={styles.taskHeaderTitle}>Today's Tasks</Text>
+            <TouchableOpacity
+              onPress={() => setShowCreateTaskForm(true)}
+              style={styles.addTaskButton}
+            >
+              <Text style={styles.addTaskButtonText}>+ New Task</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TaskList
+            tasks={todaysTasks}
+            title=""
+            onComplete={handleCompleteTask}
+            onSkip={handleSkipTask}
+            onEdit={(task) => {
+              // Edit functionality will be implemented in the future
+              Alert.alert('Edit Task', 'Edit functionality will be implemented in the next iteration.');
+            }}
+            onDelete={handleDeleteTask}
+            isCompleting={isCompleting}
+            emptyMessage="No tasks scheduled for today. Create one to get started!"
+            showStats={true}
+          />
+        </View>
+
+        {/* Create Task Form Modal */}
+        <Modal
+          visible={showCreateTaskForm}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowCreateTaskForm(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <CreateTaskForm
+                onClose={() => setShowCreateTaskForm(false)}
+                onSubmit={handleCreateTask}
+                goals={goals}
+                isLoading={isCreatingTask}
+              />
+            </View>
+          </View>
+        </Modal>
 
         {/* Secondary Action Buttons */}
         <View style={styles.secondaryActionRow}>
           <Button
             title="🎯 New Goal"
             onPress={() => setShowCreateGoalForm(true)}
-            style={[styles.secondaryActionButton, { backgroundColor: Colors.deepPurple }]}
+            style={styles.secondaryActionButton}
           />
           <Button
             title="📚 View History"
             onPress={() => setShowTaskHistoryModal(true)}
-            style={[styles.secondaryActionButton, { backgroundColor: Colors.gray600 }]}
+            style={styles.secondaryActionButton}
           />
         </View>
 
@@ -477,22 +535,7 @@ function Dashboard() {
           </Card>
         )}
 
-        {/* Tasks Card */}
-        <Card style={styles.tasksCard}>
-          <TaskList
-            tasks={todaysTasks}
-            title="Today's Tasks"
-            onComplete={handleCompleteTask}
-            onSkip={handleSkipTask}
-            onEdit={(task) => {
-              // Edit functionality will be implemented in the future
-            }}
-            onDelete={handleDeleteTask}
-            isCompleting={isCompleting}
-            emptyMessage="No tasks for today. Create your first task above! 🎯"
-            showStats={true}
-          />
-        </Card>
+
 
         {/* Stats Overview */}
         <Card style={styles.statsCard}>
@@ -1075,5 +1118,55 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  
+  // Modern Task Management Styles
+  modernTaskSection: {
+    flex: 1,
+    marginBottom: Spacing.lg,
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  taskHeaderTitle: {
+    fontSize: Typography.xl,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  addTaskButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: 12,
+  },
+  addTaskButtonText: {
+    color: Colors.background,
+    fontSize: Typography.sm,
+    fontWeight: '600',
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '90%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    backgroundColor: Colors.background,
+    borderRadius: 20,
+    padding: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
   },
 });
