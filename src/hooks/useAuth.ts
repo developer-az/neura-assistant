@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 
 export interface AuthState {
@@ -16,11 +16,13 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    // Get initial session
+    if (!isSupabaseConfigured) {
+      setAuthState({ user: null, session: null, loading: false });
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
-        console.error('Error getting session:', error);
-        // Clear any invalid session
         supabase.auth.signOut();
       }
       setAuthState({
@@ -30,30 +32,24 @@ export function useAuth() {
       });
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth event:', event);
-        
-        // Handle token refresh errors
-        if (event === 'TOKEN_REFRESHED' && !session) {
-          console.log('Token refresh failed, signing out user');
-          await supabase.auth.signOut();
-          return;
-        }
-        
-        setAuthState({
-          session,
-          user: session?.user ?? null,
-          loading: false,
-        });
-
-        // Handle sign in - create or update profile
-        if (event === 'SIGNED_IN' && session?.user) {
-          await ensureProfile(session.user);
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'TOKEN_REFRESHED' && !session) {
+        await supabase.auth.signOut();
+        return;
       }
-    );
+
+      setAuthState({
+        session,
+        user: session?.user ?? null,
+        loading: false,
+      });
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        await ensureProfile(session.user);
+      }
+    });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -67,36 +63,26 @@ export function useAuth() {
         .single();
 
       if (error && error.code === 'PGRST116') {
-        // Profile doesn't exist, create one
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            email: user.email!,
-            full_name: user.user_metadata?.full_name || null,
-          });
-
-        if (insertError) {
-          console.error('Error creating profile:', insertError);
-        }
+        await supabase.from('profiles').insert({
+          id: user.id,
+          email: user.email!,
+          full_name: user.user_metadata?.full_name || null,
+        });
+      } else if (profile) {
+        // profile exists
       }
-    } catch (error) {
-      console.error('Error ensuring profile:', error);
+    } catch {
+      // non-blocking
     }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       return { data, error: null };
-    } catch (error: any) {
-      console.error('Sign in error:', error);
-      return { data: null, error };
+    } catch (error: unknown) {
+      return { data: null, error: error as Error };
     }
   };
 
@@ -105,18 +91,12 @@ export function useAuth() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            full_name: fullName || '',
-          },
-        },
+        options: { data: { full_name: fullName || '' } },
       });
-
       if (error) throw error;
       return { data, error: null };
-    } catch (error: any) {
-      console.error('Sign up error:', error);
-      return { data: null, error };
+    } catch (error: unknown) {
+      return { data: null, error: error as Error };
     }
   };
 
@@ -125,20 +105,8 @@ export function useAuth() {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       return { error: null };
-    } catch (error: any) {
-      console.error('Sign out error:', error);
-      return { error };
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) throw error;
-      return { error: null };
-    } catch (error: any) {
-      console.error('Reset password error:', error);
-      return { error };
+    } catch (error: unknown) {
+      return { error: error as Error };
     }
   };
 
@@ -147,7 +115,7 @@ export function useAuth() {
     signInWithEmail,
     signUpWithEmail,
     signOut,
-    resetPassword,
     isAuthenticated: !!authState.user,
+    isConfigured: isSupabaseConfigured,
   };
 }

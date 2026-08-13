@@ -1,255 +1,53 @@
-# 🧠 Neura - AI-Powered Productivity App
+/**
+ * Baseline — personal self-rating notebook
+ *
+ * Web now (Expo), portable to iOS later.
+ */
 
-A modern, intelligent productivity app built with React Native, Expo, and Supabase. Neura combines task management, goal tracking, and AI-powered insights to help you achieve more with less effort.
+# Baseline
 
-## ✨ New Features (Latest Update)
+A quiet notebook for the things you’re actually trying to master.
 
-### 🎯 Enhanced Task Completion
-- **Satisfaction Ratings**: Rate your satisfaction (1-5) after completing tasks
-- **Completion Modal**: Beautiful completion feedback with motivational messages
-- **Achievement Tracking**: Track completion count, time invested, and average satisfaction
-- **Visual Feedback**: Animated checkmarks and progress indicators
+You define the focuses. You define the attributes. You rate yourself — and you see those scores every time you open the page. Each week you check in again: nudge with +/− for small shifts, or type a new number when you’ve moved a lot.
 
-### 🔄 Recurring Tasks
-- **Daily/Weekly/Monthly**: Set tasks to repeat automatically
-- **Smart Scheduling**: Next occurrence created automatically upon completion
-- **Recurrence Patterns**: Flexible scheduling with custom intervals
-- **Visual Indicators**: Clear badges showing recurring task status
+No task engine. No streaks chasing you. Just your own baseline, kept honest.
 
-### 🏆 Achievement System
-- **Progress Levels**: Beginner → Intermediate → Pro → Expert → Master
-- **Motivational Messages**: Dynamic encouragement based on your progress
-- **Statistics Dashboard**: Comprehensive view of your productivity metrics
-- **Time Tracking**: Monitor total time invested in task completion
+## What it is
 
-### 🎨 Modern UI Overhaul
-- **Card-Based Design**: Clean, modern card layouts with shadows
-- **Color-Coded Difficulty**: Visual difficulty indicators (🟢🟡🔴)
-- **Energy Level Icons**: Intuitive energy requirement display (🌱⚡🔥)
-- **Organized Task Lists**: Grouped by status (Overdue, Pending, Completed)
-- **Responsive Animations**: Smooth interactions and feedback
+- **Focuses** — main objectives (e.g. Tennis mastery)
+- **Attributes** — the pieces that make it up (forehand, backhand, slice, serve…)
+- **Scores on the home page** — always visible, always yours
+- **Weekly check-in** — absolute score *or* incremental +/−
+- **Draw layer** — a laminated sheet over the page; sketch, underline, scribble; toggle Draw when you want ink on top
 
-## 🚀 Key Features
+## Stack
 
-### Task Management
-- **Smart Scheduling**: AI-powered optimal timing suggestions
-- **Difficulty & Energy Levels**: Match tasks to your current capacity
-- **Goal Linking**: Connect tasks to larger objectives
-- **Streak Tracking**: Build momentum with completion streaks
-- **Skip Reasons**: Understand why tasks are skipped for better planning
+- Expo + React Native (web today, iOS/Android via EAS later)
+- TypeScript
+- Supabase Auth + Postgres (RLS) — account required, presented as *claiming* your notebook
+- TanStack Query
+- react-native-svg for the draw overlay
 
-### Goal Tracking
-- **Category-Based Organization**: Health, Career, Learning, Habits, Finance, Relationships, Personal
-- **Progress Visualization**: Visual progress bars and completion percentages
-- **Success Criteria**: Define clear success metrics for each goal
-- **AI-Generated Goals**: Get intelligent goal suggestions
+## Setup
 
-### AI Insights
-- **Pattern Recognition**: Identify productivity patterns and trends
-- **Behavioral Coaching**: Personalized recommendations for improvement
-- **Achievement Celebrations**: Recognize and celebrate your successes
-- **Actionable Suggestions**: Practical tips to boost productivity
+1. Copy `env.example` → `.env` and add your Supabase URL + anon key
+2. Run [`database-setup.sql`](database-setup.sql) (or [`database-migration.sql`](database-migration.sql) if upgrading from the old Neura schema) in the Supabase SQL editor
+3. Install & run:
 
-### Real-time Sync
-- **Cross-Device Sync**: Access your data anywhere, anytime
-- **Offline Support**: Work without internet, sync when connected
-- **Instant Updates**: Real-time collaboration and updates
-- **Conflict Resolution**: Smart handling of concurrent edits
-
-## 🛠️ Technical Stack
-
-### Frontend
-- **React Native + Expo**: Cross-platform mobile and web development
-- **TypeScript**: Full type safety and better developer experience
-- **React Query**: Optimistic updates and intelligent caching
-- **Modern UI Components**: Custom-built components with consistent design
-
-### Backend
-- **Supabase**: PostgreSQL database with real-time subscriptions
-- **Row Level Security**: Secure data access and user isolation
-- **Authentication**: Built-in user management and social login
-- **Database Triggers**: Automatic recurring task creation and stats updates
-
-### AI Features
-- **Pattern Analysis**: Behavioral insights from user data
-- **Smart Scheduling**: Optimal task timing recommendations
-- **Motivational Coaching**: Personalized encouragement messages
-- **Achievement Recognition**: Automatic milestone detection
-
-## 📱 Screenshots & UI
-
-### Modern Dashboard
-- Achievement card with progress level and motivational messages
-- Organized task lists with status-based grouping
-- Real-time statistics and completion rates
-- Clean, card-based design with modern shadows
-
-### Enhanced Task Creation
-- Recurring task toggle with pattern selection
-- Visual difficulty and energy level selectors
-- Goal linking with category-based colors
-- Duration and scheduling options
-
-### Completion Experience
-- Satisfaction rating modal with emoji feedback
-- Achievement badges and progress indicators
-- Streak tracking and completion statistics
-- Motivational messages and celebrations
-
-## 🔧 Setup Instructions
-
-### 1. Clone and Install
 ```bash
-git clone <repository-url>
-cd neura-app-fresh
 npm install
+npm run web
 ```
 
-### 2. Environment Setup
-Create a `.env` file with your Supabase credentials:
-```env
-EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+## Scripts
 
-### 3. Database Setup
-Run the complete setup in your Supabase SQL Editor:
-```sql
--- Run database-setup.sql first
--- Then run database-migration.sql for new features
-```
+| Command | Purpose |
+|---------|---------|
+| `npm run web` | Website |
+| `npm run ios` / `android` | Native |
+| `npm run type-check` | TypeScript |
+| `npm test` | Jest |
 
-### 4. Start Development
-```bash
-npm start
-```
+## Design notes
 
-## 🏗️ Architecture
-
-### Component Structure
-```
-src/
-├── components/
-│   ├── features/
-│   │   ├── tasks/
-│   │   │   ├── TaskItem.tsx          # Modern task component
-│   │   │   ├── TaskList.tsx          # Organized task lists
-│   │   │   ├── CreateTaskForm.tsx    # Enhanced task creation
-│   │   │   └── AchievementCard.tsx   # Progress tracking
-│   │   ├── goals/
-│   │   └── insights/
-│   ├── ui/                           # Reusable UI components
-│   └── MainApp.tsx                   # Main dashboard
-├── hooks/                            # Custom React hooks
-├── services/                         # API and external services
-└── types/                           # TypeScript definitions
-```
-
-### Database Schema
-- **Tasks**: Enhanced with recurring fields and achievement tracking
-- **Goals**: Category-based organization with progress tracking
-- **Insights**: AI-generated recommendations and patterns
-- **Profiles**: User preferences and notification settings
-
-## 🎨 Design System
-
-### Colors
-- **Primary**: Modern blue (#6366f1)
-- **Success**: Green (#10b981)
-- **Warning**: Orange (#f59e0b)
-- **Error**: Red (#ef4444)
-- **Background**: Clean whites and grays
-
-### Typography
-- **Hierarchy**: Clear font sizes and weights
-- **Readability**: Optimized line heights and spacing
-- **Consistency**: Unified typography across components
-
-### Components
-- **Cards**: Elevated containers with shadows
-- **Buttons**: Interactive elements with hover states
-- **Forms**: Clean input fields with validation
-- **Modals**: Overlay dialogs for focused interactions
-
-## 🔄 Recurring Tasks
-
-### How It Works
-1. **Create Recurring Task**: Toggle recurring option and select pattern
-2. **Automatic Creation**: Next occurrence created when current task is completed
-3. **Pattern Support**: Daily, weekly, monthly with custom intervals
-4. **Smart Scheduling**: Maintains original time and duration settings
-
-### Configuration Options
-- **Daily**: Every day, every 2 days, etc.
-- **Weekly**: Every week, every 2 weeks, etc.
-- **Monthly**: Every month, every 2 months, etc.
-- **Custom**: Advanced scheduling with specific rules
-
-## 🏆 Achievement System
-
-### Progress Levels
-- **Beginner** (0-49%): 🌱 Starting your journey
-- **Intermediate** (50-69%): 🎯 Building momentum
-- **Pro** (70-79%): ⭐ Consistent performer
-- **Expert** (80-89%): 🏆 High achiever
-- **Master** (90%+): 👑 Productivity master
-
-### Tracking Metrics
-- **Completion Rate**: Percentage of tasks completed
-- **Time Invested**: Total minutes spent on tasks
-- **Average Satisfaction**: User satisfaction ratings
-- **Streak Count**: Consecutive days of task completion
-
-## 🧪 Testing
-
-### Manual Testing Checklist
-- [ ] Create regular and recurring tasks
-- [ ] Complete tasks with satisfaction ratings
-- [ ] Verify recurring task creation
-- [ ] Check achievement level progression
-- [ ] Test task organization and filtering
-- [ ] Validate real-time sync across devices
-
-### Automated Tests
-```bash
-npm test                    # Run all tests
-npm run test:watch         # Watch mode
-npm run test:coverage      # Coverage report
-```
-
-## 🚀 Deployment
-
-### Expo Build
-```bash
-expo build:android         # Android APK
-expo build:ios            # iOS IPA
-expo build:web            # Web deployment
-```
-
-### Supabase Deployment
-- Database migrations run automatically
-- Real-time subscriptions enabled
-- Row Level Security policies active
-- Authentication flows configured
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with tests
-4. Submit a pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 🆘 Support
-
-- **Documentation**: Check the docs folder
-- **Issues**: Report bugs on GitHub
-- **Discussions**: Join community discussions
-- **Email**: Contact for enterprise support
-
----
-
-**Built with ❤️ using React Native, Expo, and Supabase** 
+Cool paper, graphite ink, deep teal accent. Literata + DM Sans. The draw overlay only captures gestures when Draw is on, so the notebook underneath stays usable.

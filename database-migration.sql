@@ -1,139 +1,79 @@
--- Migration script to add recurring task support and achievement tracking
--- Run this in your Supabase SQL Editor after the initial setup
+-- Baseline migration from Neura productivity schema
+-- Safe to run on a fresh or existing project. Old task/goal/insight tables are left in place
+-- but unused. New Baseline tables are created below.
 
--- Add recurring task fields to tasks table
-ALTER TABLE tasks 
-ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS recurrence_pattern TEXT CHECK (recurrence_pattern IN ('daily', 'weekly', 'monthly', 'custom')),
-ADD COLUMN IF NOT EXISTS recurrence_config JSONB DEFAULT '{}',
-ADD COLUMN IF NOT EXISTS parent_task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
-ADD COLUMN IF NOT EXISTS next_occurrence TIMESTAMP WITH TIME ZONE;
+CREATE TABLE IF NOT EXISTS focuses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  notes TEXT DEFAULT '',
+  sort_order INTEGER DEFAULT 0,
+  archived BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Add achievement tracking fields
-ALTER TABLE tasks 
-ADD COLUMN IF NOT EXISTS completion_count INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS total_completion_time_minutes INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS average_completion_time_minutes INTEGER DEFAULT 0;
+CREATE TABLE IF NOT EXISTS attributes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  focus_id UUID REFERENCES focuses(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  current_score NUMERIC(5,1) DEFAULT 5 CHECK (current_score >= 0 AND current_score <= 100),
+  sort_order INTEGER DEFAULT 0,
+  archived BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Update existing tasks to have default values for new fields
-UPDATE tasks 
-SET 
-  is_recurring = FALSE,
-  recurrence_config = '{}',
-  completion_count = CASE WHEN status = 'completed' THEN 1 ELSE 0 END,
-  total_completion_time_minutes = CASE WHEN status = 'completed' THEN COALESCE(estimated_duration_minutes, 30) ELSE 0 END,
-  average_completion_time_minutes = CASE WHEN status = 'completed' THEN COALESCE(estimated_duration_minutes, 30) ELSE 0 END
-WHERE is_recurring IS NULL;
+CREATE TABLE IF NOT EXISTS weekly_ratings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  attribute_id UUID REFERENCES attributes(id) ON DELETE CASCADE NOT NULL,
+  week_start DATE NOT NULL,
+  score NUMERIC(5,1) NOT NULL CHECK (score >= 0 AND score <= 100),
+  delta NUMERIC(5,1) NOT NULL DEFAULT 0,
+  note TEXT DEFAULT '',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE (attribute_id, week_start)
+);
 
--- Create indexes for better performance on new fields
-CREATE INDEX IF NOT EXISTS idx_tasks_is_recurring ON tasks(is_recurring);
-CREATE INDEX IF NOT EXISTS idx_tasks_parent_task_id ON tasks(parent_task_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_next_occurrence ON tasks(next_occurrence);
-CREATE INDEX IF NOT EXISTS idx_tasks_completion_count ON tasks(completion_count);
+CREATE TABLE IF NOT EXISTS page_drawings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  page_key TEXT NOT NULL,
+  strokes JSONB DEFAULT '[]',
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE (user_id, page_key)
+);
 
--- Add function to automatically create next occurrence for recurring tasks
-CREATE OR REPLACE FUNCTION create_next_recurrence()
-RETURNS TRIGGER AS $$
-DECLARE
-  next_date TIMESTAMP WITH TIME ZONE;
-  next_task_id UUID;
-BEGIN
-  -- Only create next occurrence if task was completed and is recurring
-  IF NEW.status = 'completed' AND OLD.status != 'completed' AND NEW.is_recurring = TRUE THEN
-    
-    -- Calculate next occurrence date based on pattern
-    CASE NEW.recurrence_pattern
-      WHEN 'daily' THEN
-        next_date := NEW.scheduled_for + INTERVAL '1 day';
-      WHEN 'weekly' THEN
-        next_date := NEW.scheduled_for + INTERVAL '7 days';
-      WHEN 'monthly' THEN
-        next_date := NEW.scheduled_for + INTERVAL '1 month';
-      ELSE
-        next_date := NULL;
-    END CASE;
-    
-    -- Create next occurrence if we have a valid next date
-    IF next_date IS NOT NULL THEN
-      INSERT INTO tasks (
-        user_id,
-        goal_id,
-        title,
-        description,
-        scheduled_for,
-        estimated_duration_minutes,
-        difficulty_level,
-        energy_requirement,
-        status,
-        is_recurring,
-        recurrence_pattern,
-        recurrence_config,
-        parent_task_id,
-        next_occurrence,
-        ai_generated,
-        context
-      ) VALUES (
-        NEW.user_id,
-        NEW.goal_id,
-        NEW.title,
-        NEW.description,
-        next_date,
-        NEW.estimated_duration_minutes,
-        NEW.difficulty_level,
-        NEW.energy_requirement,
-        'pending',
-        TRUE,
-        NEW.recurrence_pattern,
-        NEW.recurrence_config,
-        NEW.id,
-        next_date,
-        NEW.ai_generated,
-        NEW.context
-      );
-    END IF;
-  END IF;
-  
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+CREATE INDEX IF NOT EXISTS idx_focuses_user_id ON focuses(user_id);
+CREATE INDEX IF NOT EXISTS idx_attributes_focus_id ON attributes(focus_id);
+CREATE INDEX IF NOT EXISTS idx_attributes_user_id ON attributes(user_id);
+CREATE INDEX IF NOT EXISTS idx_weekly_ratings_attribute_id ON weekly_ratings(attribute_id);
+CREATE INDEX IF NOT EXISTS idx_weekly_ratings_week_start ON weekly_ratings(week_start);
+CREATE INDEX IF NOT EXISTS idx_page_drawings_user_page ON page_drawings(user_id, page_key);
 
--- Create trigger for automatic next occurrence creation
-DROP TRIGGER IF EXISTS trigger_create_next_recurrence ON tasks;
-CREATE TRIGGER trigger_create_next_recurrence
-  AFTER UPDATE ON tasks
-  FOR EACH ROW
-  EXECUTE FUNCTION create_next_recurrence();
+ALTER TABLE focuses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attributes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE weekly_ratings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE page_drawings ENABLE ROW LEVEL SECURITY;
 
--- Add function to update completion statistics
-CREATE OR REPLACE FUNCTION update_completion_stats()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Update completion count and time statistics when task is completed
-  IF NEW.status = 'completed' AND OLD.status != 'completed' THEN
-    NEW.completion_count := COALESCE(OLD.completion_count, 0) + 1;
-    NEW.total_completion_time_minutes := COALESCE(OLD.total_completion_time_minutes, 0) + COALESCE(NEW.estimated_duration_minutes, 30);
-    NEW.average_completion_time_minutes := NEW.total_completion_time_minutes / NEW.completion_count;
-  END IF;
-  
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+DO $$ BEGIN
+  CREATE POLICY "Users own focuses" ON focuses FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Create trigger for automatic completion stats update
-DROP TRIGGER IF EXISTS trigger_update_completion_stats ON tasks;
-CREATE TRIGGER trigger_update_completion_stats
-  BEFORE UPDATE ON tasks
-  FOR EACH ROW
-  EXECUTE FUNCTION update_completion_stats();
+DO $$ BEGIN
+  CREATE POLICY "Users own attributes" ON attributes FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Add RLS policies for new fields
--- (These should already be covered by existing policies, but let's make sure)
-CREATE POLICY IF NOT EXISTS "Users can view own recurring tasks" ON tasks 
-  FOR SELECT USING (auth.uid() = user_id);
+DO $$ BEGIN
+  CREATE POLICY "Users own weekly_ratings" ON weekly_ratings FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY IF NOT EXISTS "Users can update own recurring tasks" ON tasks 
-  FOR UPDATE USING (auth.uid() = user_id);
-
--- Grant necessary permissions
-GRANT USAGE ON SCHEMA public TO authenticated;
-GRANT ALL ON tasks TO authenticated; 
+DO $$ BEGIN
+  CREATE POLICY "Users own page_drawings" ON page_drawings FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
