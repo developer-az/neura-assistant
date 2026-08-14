@@ -5,6 +5,10 @@
 3. Copy `env.example` to `.env` and fill `EXPO_PUBLIC_SUPABASE_URL` + `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 4. `npm install && npm run web`
 
+Vercel: `vercel.json` runs `expo export -p web` and serves `dist/` (a real `index.html`). Without that, the Git deploy served the repo root and browsers downloaded `index.ts`.
+
+Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` on the Vercel project so the production bundle can talk to Supabase.
+
 Auth is email/password. The claim screen is intentionally quiet — claiming the notebook is ownership, not onboarding theater.
 
 Drawing strokes save to `page_drawings` per page key (`home`, `focus:<id>`).
