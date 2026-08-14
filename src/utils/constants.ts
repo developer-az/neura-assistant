@@ -1,36 +1,31 @@
 export const Colors = {
-  // Primary Brand
-  primary: '#6366f1',
-  primaryLight: '#818cf8',
-  primaryDark: '#4f46e5',
-  
-  // Semantic Colors
-  success: '#10b981',
-  successLight: '#34d399',
-  warning: '#f59e0b',
-  danger: '#ef4444',
-  
-  // Neutral Scale
-  gray50: '#f9fafb',
-  gray100: '#f3f4f6',
-  gray200: '#e5e7eb',
-  gray300: '#d1d5db',
-  gray400: '#9ca3af',
-  gray500: '#6b7280',
-  gray600: '#4b5563',
-  gray700: '#374151',
-  gray800: '#1f2937',
-  gray900: '#111827',
-  
-  // Surfaces
-  background: '#ffffff',
-  backgroundSecondary: '#f8fafc',
-  surface: '#ffffff',
-  
-  // Text
-  textPrimary: '#0f172a',
-  textSecondary: '#475569',
-  textTertiary: '#94a3b8',
+  // Cool paper notebook — graphite ink, deep teal accent
+  paper: '#EEF1F4',
+  paperLine: '#D5DCE4',
+  margin: '#C8B4A8',
+  ink: '#1A2332',
+  inkMuted: '#5A6575',
+  inkFaint: '#8B96A5',
+  surface: '#F7F8FA',
+  surfaceRaised: '#FFFFFF',
+  accent: '#1F5C5C',
+  accentSoft: '#D6E8E6',
+  up: '#2A6B4F',
+  down: '#A34B3B',
+  draw: '#1A2332',
+  drawAccent: '#2E5A88',
+  overlay: 'rgba(26, 35, 50, 0.04)',
+  danger: '#A34B3B',
+  border: '#CDD5DE',
+  white: '#FFFFFF',
+};
+
+export const Fonts = {
+  display: 'Literata_600SemiBold',
+  displayRegular: 'Literata_400Regular',
+  body: 'DMSans_400Regular',
+  bodyMedium: 'DMSans_500Medium',
+  bodyBold: 'DMSans_700Bold',
 };
 
 export const Typography = {
@@ -38,10 +33,10 @@ export const Typography = {
   sm: 14,
   base: 16,
   lg: 18,
-  xl: 20,
-  xl2: 24,
-  xl3: 30,
-  xl4: 36,
+  xl: 22,
+  xl2: 28,
+  xl3: 36,
+  xl4: 44,
 };
 
 export const Spacing = {
@@ -60,3 +55,8 @@ export const BorderRadius = {
   xl: 16,
   full: 999,
 };
+
+/** Default self-rating scale ceiling shown in UI */
+export const SCORE_MAX = 10;
+export const SCORE_MIN = 0;
+export const SCORE_STEP = 0.5;

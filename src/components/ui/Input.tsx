@@ -1,69 +1,52 @@
 import React from 'react';
-import { TextInput, Text, View, StyleSheet, TextInputProps } from 'react-native';
+import { TextInput, View, Text, StyleSheet, TextInputProps, ViewStyle } from 'react-native';
+import { Colors, Fonts, Spacing, Typography } from '../../utils/constants';
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
-  required?: boolean;
+  containerStyle?: ViewStyle;
 }
 
-export const Input: React.FC<InputProps> = ({
-  label,
-  error,
-  required = false,
-  style,
-  ...props
-}) => {
-  return (
-    <View style={styles.container}>
-      {label && (
-        <Text style={styles.label}>
-          {label}
-          {required && <Text style={styles.required}> *</Text>}
-        </Text>
-      )}
-      <TextInput
-        style={[
-          styles.input,
-          error && styles.inputError,
-          style,
-        ]}
-        placeholderTextColor="#9ca3af"
-        {...props}
-      />
-      {error && <Text style={styles.errorText}>{error}</Text>}
-    </View>
-  );
-};
+export const Input: React.FC<InputProps> = ({ label, error, containerStyle, style, ...props }) => (
+  <View style={[styles.container, containerStyle]}>
+    {label ? <Text style={styles.label}>{label}</Text> : null}
+    <TextInput
+      placeholderTextColor={Colors.inkFaint}
+      style={[styles.input, error ? styles.inputError : null, style]}
+      {...props}
+    />
+    {error ? <Text style={styles.error}>{error}</Text> : null}
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    gap: Spacing.sm,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  required: {
-    color: '#ef4444',
+    fontFamily: Fonts.bodyMedium,
+    fontSize: Typography.sm,
+    color: Colors.inkMuted,
+    letterSpacing: 0.3,
   },
   input: {
+    fontFamily: Fonts.body,
+    fontSize: Typography.base,
+    color: Colors.ink,
+    backgroundColor: Colors.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: Colors.border,
+    borderRadius: 6,
+    paddingHorizontal: Spacing.md,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    backgroundColor: '#ffffff',
   },
   inputError: {
-    borderColor: '#ef4444',
+    borderColor: Colors.danger,
   },
-  errorText: {
-    fontSize: 12,
-    color: '#ef4444',
-    marginTop: 4,
+  error: {
+    fontFamily: Fonts.body,
+    fontSize: Typography.xs,
+    color: Colors.danger,
   },
 });

@@ -1,12 +1,18 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { Colors } from '../../../app/constants/colors';
-import { Typography, Spacing } from '../../utils/constants';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+  ActivityIndicator,
+} from 'react-native';
+import { Colors, Fonts, Spacing, Typography } from '../../utils/constants';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'ghost' | 'ink';
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
   style?: ViewStyle;
@@ -23,79 +29,80 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   loading = false,
   textStyle,
-}) => {
-  return (
-    <TouchableOpacity
-      style={[
-        styles.button,
-        styles[variant],
-        styles[size],
-        (disabled || loading) && styles.disabled,
-        style,
-      ]}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.8}
-    >
-      <Text style={[styles.text, styles[`${variant}Text`], textStyle]}>
-        {loading ? 'Loading...' : title}
+}) => (
+  <TouchableOpacity
+    style={[
+      styles.button,
+      styles[variant],
+      styles[size],
+      (disabled || loading) && styles.disabled,
+      style,
+    ]}
+    onPress={onPress}
+    disabled={disabled || loading}
+    activeOpacity={0.75}
+  >
+    {loading ? (
+      <ActivityIndicator color={variant === 'ghost' ? Colors.ink : Colors.white} />
+    ) : (
+      <Text style={[styles.text, styles[`${variant}Text`], styles[`${size}Text`], textStyle]}>
+        {title}
       </Text>
-    </TouchableOpacity>
-  );
-};
+    )}
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 16,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   primary: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.accent,
   },
-  secondary: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: Colors.gray300,
+  ink: {
+    backgroundColor: Colors.ink,
   },
-  outline: {
+  ghost: {
     backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   small: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
   },
   medium: {
-    paddingVertical: Spacing.md,
+    paddingVertical: 12,
     paddingHorizontal: Spacing.lg,
   },
   large: {
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
   },
   disabled: {
-    opacity: 0.5,
-    shadowOpacity: 0,
-    elevation: 0,
+    opacity: 0.45,
   },
   text: {
-    fontWeight: '600',
-    fontSize: Typography.base,
+    fontFamily: Fonts.bodyMedium,
   },
   primaryText: {
-    color: Colors.background,
+    color: Colors.white,
   },
-  secondaryText: {
-    color: Colors.textPrimary,
+  inkText: {
+    color: Colors.white,
   },
-  outlineText: {
-    color: Colors.primary,
+  ghostText: {
+    color: Colors.ink,
+  },
+  smallText: {
+    fontSize: Typography.sm,
+  },
+  mediumText: {
+    fontSize: Typography.base,
+  },
+  largeText: {
+    fontSize: Typography.lg,
   },
 });

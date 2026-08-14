@@ -1,133 +1,113 @@
--- Neura App Database Setup
--- Run these commands in your Supabase SQL Editor
+-- Baseline — personal self-rating notebook
+-- Run in Supabase SQL Editor
 
--- Enable Row Level Security
 ALTER TABLE auth.users ENABLE ROW LEVEL SECURITY;
 
--- Create profiles table
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT NOT NULL,
   full_name TEXT,
   avatar_url TEXT,
   timezone TEXT DEFAULT 'UTC',
-  subscription_tier TEXT DEFAULT 'free',
   preferences JSONB DEFAULT '{}',
-  push_token TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create goals table
-CREATE TABLE IF NOT EXISTS goals (
+-- A focus = one main objective (e.g. "Tennis mastery")
+CREATE TABLE IF NOT EXISTS focuses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
-  description TEXT,
-  category TEXT CHECK (category IN ('health', 'career', 'learning', 'habits', 'finance', 'relationships', 'personal')) NOT NULL,
-  priority TEXT DEFAULT 'medium',
-  target_date TIMESTAMP WITH TIME ZONE,
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'paused', 'completed', 'archived')),
-  completion_percentage INTEGER DEFAULT 0 CHECK (completion_percentage >= 0 AND completion_percentage <= 100),
-  ai_generated BOOLEAN DEFAULT FALSE,
-  original_prompt TEXT,
-  success_criteria JSONB,
+  notes TEXT DEFAULT '',
+  sort_order INTEGER DEFAULT 0,
+  archived BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create tasks table
-CREATE TABLE IF NOT EXISTS tasks (
+-- Attributes inside a focus (e.g. forehand, serve)
+CREATE TABLE IF NOT EXISTS attributes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  goal_id UUID REFERENCES goals(id) ON DELETE SET NULL,
-  title TEXT NOT NULL,
-  description TEXT,
-  scheduled_for TIMESTAMP WITH TIME ZONE,
-  estimated_duration_minutes INTEGER,
-  difficulty_level INTEGER DEFAULT 2 CHECK (difficulty_level >= 1 AND difficulty_level <= 5),
-  energy_requirement TEXT DEFAULT 'medium' CHECK (energy_requirement IN ('low', 'medium', 'high')),
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'skipped')),
-  completed_at TIMESTAMP WITH TIME ZONE,
-  skipped_at TIMESTAMP WITH TIME ZONE,
-  streak_count INTEGER DEFAULT 0,
-  ai_generated BOOLEAN DEFAULT FALSE,
-  context JSONB DEFAULT '{}',
-  -- Recurring task fields
-  is_recurring BOOLEAN DEFAULT FALSE,
-  recurrence_pattern TEXT CHECK (recurrence_pattern IN ('daily', 'weekly', 'monthly', 'custom')),
-  recurrence_config JSONB DEFAULT '{}',
-  parent_task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
-  next_occurrence TIMESTAMP WITH TIME ZONE,
-  -- Achievement tracking
-  completion_count INTEGER DEFAULT 0,
-  total_completion_time_minutes INTEGER DEFAULT 0,
-  average_completion_time_minutes INTEGER DEFAULT 0,
+  focus_id UUID REFERENCES focuses(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  current_score NUMERIC(5,1) DEFAULT 5 CHECK (current_score >= 0 AND current_score <= 10),
+  sort_order INTEGER DEFAULT 0,
+  archived BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create insights table (this was missing!)
-CREATE TABLE IF NOT EXISTS insights (
+-- Weekly self-ratings (absolute score + delta from prior)
+CREATE TABLE IF NOT EXISTS weekly_ratings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  type TEXT CHECK (type IN ('pattern_recognition', 'behavioral_coaching', 'achievement', 'suggestion')) NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  confidence DECIMAL(3,2) CHECK (confidence >= 0 AND confidence <= 1) NOT NULL,
-  actionable BOOLEAN DEFAULT FALSE,
-  icon TEXT NOT NULL,
-  metadata JSONB DEFAULT '{}',
-  read_at TIMESTAMP WITH TIME ZONE,
+  attribute_id UUID REFERENCES attributes(id) ON DELETE CASCADE NOT NULL,
+  week_start DATE NOT NULL,
+  score NUMERIC(5,1) NOT NULL CHECK (score >= 0 AND score <= 10),
+  delta NUMERIC(5,1) NOT NULL DEFAULT 0,
+  note TEXT DEFAULT '',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  UNIQUE (attribute_id, week_start)
 );
 
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals(user_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_scheduled_for ON tasks(scheduled_for);
-CREATE INDEX IF NOT EXISTS idx_insights_user_id ON insights(user_id);
-CREATE INDEX IF NOT EXISTS idx_insights_created_at ON insights(created_at);
+-- Laminated-sheet drawings per page
+CREATE TABLE IF NOT EXISTS page_drawings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  page_key TEXT NOT NULL,
+  strokes JSONB DEFAULT '[]',
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE (user_id, page_key)
+);
 
--- Enable RLS on all tables
+CREATE INDEX IF NOT EXISTS idx_focuses_user_id ON focuses(user_id);
+CREATE INDEX IF NOT EXISTS idx_attributes_focus_id ON attributes(focus_id);
+CREATE INDEX IF NOT EXISTS idx_attributes_user_id ON attributes(user_id);
+CREATE INDEX IF NOT EXISTS idx_weekly_ratings_attribute_id ON weekly_ratings(attribute_id);
+CREATE INDEX IF NOT EXISTS idx_weekly_ratings_week_start ON weekly_ratings(week_start);
+CREATE INDEX IF NOT EXISTS idx_page_drawings_user_page ON page_drawings(user_id, page_key);
+
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE insights ENABLE ROW LEVEL SECURITY;
+ALTER TABLE focuses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attributes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE weekly_ratings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE page_drawings ENABLE ROW LEVEL SECURITY;
 
--- Create RLS policies
-CREATE POLICY IF NOT EXISTS "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY IF NOT EXISTS "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY IF NOT EXISTS "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+DROP POLICY IF EXISTS "Users own focuses" ON focuses;
+DROP POLICY IF EXISTS "Users own attributes" ON attributes;
+DROP POLICY IF EXISTS "Users own weekly_ratings" ON weekly_ratings;
+DROP POLICY IF EXISTS "Users own page_drawings" ON page_drawings;
 
-CREATE POLICY IF NOT EXISTS "Users can view own goals" ON goals FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can insert own goals" ON goals FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can update own goals" ON goals FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can delete own goals" ON goals FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
-CREATE POLICY IF NOT EXISTS "Users can view own tasks" ON tasks FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can insert own tasks" ON tasks FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can update own tasks" ON tasks FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can delete own tasks" ON tasks FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users own focuses" ON focuses FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users own attributes" ON attributes FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users own weekly_ratings" ON weekly_ratings FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users own page_drawings" ON page_drawings FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can view own insights" ON insights FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can insert own insights" ON insights FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can update own insights" ON insights FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY IF NOT EXISTS "Users can delete own insights" ON insights FOR DELETE USING (auth.uid() = user_id);
-
--- Create function to handle user creation
-CREATE OR REPLACE FUNCTION handle_new_user()
+CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, email, full_name)
-  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name');
+  NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
--- Create trigger for new user creation
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user(); 
+DROP TRIGGER IF EXISTS profiles_updated_at ON profiles;
+CREATE TRIGGER profiles_updated_at BEFORE UPDATE ON profiles
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS focuses_updated_at ON focuses;
+CREATE TRIGGER focuses_updated_at BEFORE UPDATE ON focuses
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS attributes_updated_at ON attributes;
+CREATE TRIGGER attributes_updated_at BEFORE UPDATE ON attributes
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
