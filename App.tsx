@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -32,20 +32,27 @@ const queryClient = new QueryClient({
 export default function App() {
   const [ready, setReady] = useState(false);
 
-  const load = useCallback(async () => {
-    await Font.loadAsync({
-      Literata_400Regular,
-      Literata_600SemiBold,
-      DMSans_400Regular,
-      DMSans_500Medium,
-      DMSans_700Bold,
-    });
-    setReady(true);
-  }, []);
-
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    (async () => {
+      try {
+        await Font.loadAsync({
+          Literata_400Regular,
+          Literata_600SemiBold,
+          DMSans_400Regular,
+          DMSans_500Medium,
+          DMSans_700Bold,
+        });
+      } catch {
+        // System fonts still render the notebook if webfonts fail.
+      } finally {
+        if (!cancelled) setReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (!ready) {
     return (

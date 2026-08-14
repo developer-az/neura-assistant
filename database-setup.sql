@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS attributes (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   focus_id UUID REFERENCES focuses(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
-  current_score NUMERIC(5,1) DEFAULT 5 CHECK (current_score >= 0 AND current_score <= 100),
+  current_score NUMERIC(5,1) DEFAULT 5 CHECK (current_score >= 0 AND current_score <= 10),
   sort_order INTEGER DEFAULT 0,
   archived BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS weekly_ratings (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   attribute_id UUID REFERENCES attributes(id) ON DELETE CASCADE NOT NULL,
   week_start DATE NOT NULL,
-  score NUMERIC(5,1) NOT NULL CHECK (score >= 0 AND score <= 100),
+  score NUMERIC(5,1) NOT NULL CHECK (score >= 0 AND score <= 10),
   delta NUMERIC(5,1) NOT NULL DEFAULT 0,
   note TEXT DEFAULT '',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -78,6 +78,10 @@ ALTER TABLE page_drawings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+DROP POLICY IF EXISTS "Users own focuses" ON focuses;
+DROP POLICY IF EXISTS "Users own attributes" ON attributes;
+DROP POLICY IF EXISTS "Users own weekly_ratings" ON weekly_ratings;
+DROP POLICY IF EXISTS "Users own page_drawings" ON page_drawings;
 
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);

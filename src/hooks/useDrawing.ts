@@ -59,15 +59,34 @@ export function useDrawing(userId: string | undefined, pageKey: string) {
     },
   });
 
-  const scheduleSave = useCallback(
-    (strokes: DrawingStroke[]) => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
-        if (userId) persist.mutate(strokes);
-      }, 600);
-    },
-    [persist, userId]
-  );
+  const persistRef = useRef(persist);
+  persistRef.current = persist;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+  const pendingStrokes = useRef<DrawingStroke[] | null>(null);
+
+  const scheduleSave = useCallback((strokes: DrawingStroke[]) => {
+    pendingStrokes.current = strokes;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveTimer.current = null;
+      const next = pendingStrokes.current;
+      pendingStrokes.current = null;
+      if (userIdRef.current && next) persistRef.current.mutate(next);
+    }, 600);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      const next = pendingStrokes.current;
+      pendingStrokes.current = null;
+      if (userIdRef.current && next) persistRef.current.mutate(next);
+    };
+  }, []);
 
   const addStroke = useCallback(
     (stroke: Omit<DrawingStroke, 'id'>) => {

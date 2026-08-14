@@ -10,7 +10,7 @@ export function useWeeklyRatings(userId: string | undefined, attributeIds: strin
   const idsKey = attributeIds.slice().sort().join(',');
 
   const query = useQuery({
-    queryKey: ['weekly_ratings', userId, weekStart, idsKey],
+    queryKey: ['weekly_ratings', userId, idsKey],
     enabled: !!userId && attributeIds.length > 0,
     queryFn: async (): Promise<WeeklyRating[]> => {
       const { data, error } = await supabase
