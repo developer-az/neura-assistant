@@ -43,7 +43,8 @@ npm run web
 
 | Command | Purpose |
 |---------|---------|
-| `npm run web` | Website |
+| `npm run web` | Website (dev) |
+| `npm run build` | Static web export for Vercel (`dist/`) |
 | `npm run ios` / `android` | Native |
 | `npm run type-check` | TypeScript |
 | `npm test` | Jest |
