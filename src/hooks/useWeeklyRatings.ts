@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { isDemoMode } from '../lib/demoMode';
+import { localStore } from '../lib/localStore';
 import type { WeeklyRating } from '../types';
 import { getWeekStart, clampScore } from '../utils/week';
 import { SCORE_MAX, SCORE_MIN } from '../utils/constants';
@@ -13,6 +15,10 @@ export function useWeeklyRatings(userId: string | undefined, attributeIds: strin
     queryKey: ['weekly_ratings', userId, idsKey],
     enabled: !!userId && attributeIds.length > 0,
     queryFn: async (): Promise<WeeklyRating[]> => {
+      if (isDemoMode) {
+        return localStore.getWeeklyRatings(attributeIds);
+      }
+
       const { data, error } = await supabase
         .from('weekly_ratings')
         .select('*')
@@ -37,6 +43,10 @@ export function useWeeklyRatings(userId: string | undefined, attributeIds: strin
       note?: string;
       week_start?: string;
     }) => {
+      if (isDemoMode) {
+        return localStore.saveWeeklyRating(input);
+      }
+
       const ws = input.week_start ?? weekStart;
       const score = clampScore(input.score, SCORE_MIN, SCORE_MAX);
       const delta = clampScore(score - input.previous_score, -SCORE_MAX, SCORE_MAX);

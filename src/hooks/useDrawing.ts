@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { isDemoMode } from '../lib/demoMode';
+import { localStore } from '../lib/localStore';
 import type { DrawingStroke } from '../types';
 
 function makeId() {
@@ -18,6 +20,10 @@ export function useDrawing(userId: string | undefined, pageKey: string) {
     queryKey: ['page_drawings', userId, pageKey],
     enabled: !!userId && !!pageKey,
     queryFn: async () => {
+      if (isDemoMode) {
+        return localStore.getDrawing(pageKey);
+      }
+
       const { data, error } = await supabase
         .from('page_drawings')
         .select('*')
@@ -43,6 +49,11 @@ export function useDrawing(userId: string | undefined, pageKey: string) {
 
   const persist = useMutation({
     mutationFn: async (strokes: DrawingStroke[]) => {
+      if (isDemoMode) {
+        await localStore.saveDrawing(pageKey, strokes);
+        return;
+      }
+
       const { error } = await supabase.from('page_drawings').upsert(
         {
           user_id: userId!,

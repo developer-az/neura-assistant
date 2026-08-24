@@ -25,6 +25,7 @@ interface HomeScreenProps {
   focuses: FocusWithAttributes[];
   loading: boolean;
   needsCheckIn: boolean;
+  isDemoMode?: boolean;
   onOpenFocus: (focusId: string) => void;
   onCreateFocus: (title: string) => Promise<void>;
   onStartCheckIn: () => void;
@@ -36,6 +37,7 @@ export function HomeScreen({
   focuses,
   loading,
   needsCheckIn,
+  isDemoMode,
   onOpenFocus,
   onCreateFocus,
   onStartCheckIn,
@@ -77,7 +79,7 @@ export function HomeScreen({
             strokeCount={drawing.strokes.length}
           />
           <TouchableOpacity onPress={onSignOut} hitSlop={8}>
-            <Text style={styles.signOut}>Leave</Text>
+            <Text style={styles.signOut}>{isDemoMode ? 'Reset demo' : 'Leave'}</Text>
           </TouchableOpacity>
         </View>
       </View>

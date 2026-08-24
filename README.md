@@ -30,14 +30,16 @@ No task engine. No streaks chasing you. Just your own baseline, kept honest.
 
 ## Setup
 
-1. Copy `env.example` → `.env` and add your Supabase URL + anon key
-2. Run [`database-setup.sql`](database-setup.sql) (or [`database-migration.sql`](database-migration.sql) if upgrading from the old Neura schema) in the Supabase SQL editor
+1. Copy `env.example` → `.env` and add your Supabase URL + anon key (optional for local demo)
+2. Run [`database-setup.sql`](database-setup.sql) (or [`database-migration.sql`](database-migration.sql) if upgrading) when you want cloud sync
 3. Install & run:
 
 ```bash
 npm install
 npm run web
 ```
+
+**Without Supabase:** the app opens in demo mode — full notebook on this device/browser, with a banner explaining that Supabase is needed to claim and sync a notebook.
 
 ## Scripts
 
