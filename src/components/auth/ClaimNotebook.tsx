@@ -63,7 +63,8 @@ export function ClaimNotebook({ onSignIn, onSignUp, configured }: ClaimNotebookP
         {!configured ? (
           <View style={styles.warnBox}>
             <Text style={styles.warn}>
-              Connect Supabase in your env file to claim a notebook. Until then, the pages stay locked.
+              Supabase is not configured. The live site runs in demo mode with local storage until
+              you add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.
             </Text>
           </View>
         ) : (

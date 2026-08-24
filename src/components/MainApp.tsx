@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { useFocuses } from '../hooks/useFocuses';
 import { useWeeklyRatings } from '../hooks/useWeeklyRatings';
@@ -7,9 +8,11 @@ import { ClaimNotebook } from './auth/ClaimNotebook';
 import { HomeScreen } from './notebook/HomeScreen';
 import { FocusScreen } from './notebook/FocusScreen';
 import { WeeklyCheckIn } from './notebook/WeeklyCheckIn';
+import { SupabaseSetupBanner } from './ui/SupabaseSetupBanner';
 import { Colors } from '../utils/constants';
 
 export default function MainApp() {
+  const queryClient = useQueryClient();
   const auth = useAuth();
   const userId = auth.user?.id;
   const { focuses, isLoading, createFocus, createAttribute, updateFocus } = useFocuses(userId);
@@ -42,6 +45,15 @@ export default function MainApp() {
     return allAttributeIds.some((id) => !ratedAttributeIds.has(id));
   }, [allAttributeIds, ratedAttributeIds]);
 
+  const handleLeave = async () => {
+    await auth.signOut();
+    setActiveFocusId(null);
+    setCheckInOpen(false);
+    if (auth.isDemoMode) {
+      await queryClient.invalidateQueries();
+    }
+  };
+
   if (auth.loading) {
     return (
       <View style={styles.boot}>
@@ -67,6 +79,8 @@ export default function MainApp() {
 
   return (
     <View style={styles.root}>
+      {auth.isDemoMode ? <SupabaseSetupBanner /> : null}
+
       {activeFocus ? (
         <FocusScreen
           userId={userId!}
@@ -94,12 +108,13 @@ export default function MainApp() {
           focuses={focuses}
           loading={isLoading}
           needsCheckIn={needsCheckIn}
+          isDemoMode={auth.isDemoMode}
           onOpenFocus={setActiveFocusId}
           onCreateFocus={async (title) => {
             await createFocus.mutateAsync({ title });
           }}
           onStartCheckIn={() => openCheckIn()}
-          onSignOut={() => auth.signOut()}
+          onSignOut={handleLeave}
         />
       )}
 

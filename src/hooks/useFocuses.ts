@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { isDemoMode } from '../lib/demoMode';
+import { localStore } from '../lib/localStore';
 import type { Focus, Attribute, FocusWithAttributes } from '../types';
 
 export function useFocuses(userId: string | undefined) {
@@ -9,6 +11,10 @@ export function useFocuses(userId: string | undefined) {
     queryKey: ['focuses', userId],
     enabled: !!userId,
     queryFn: async (): Promise<FocusWithAttributes[]> => {
+      if (isDemoMode) {
+        return localStore.getFocusesWithAttributes();
+      }
+
       const { data: focuses, error } = await supabase
         .from('focuses')
         .select('*')
@@ -48,6 +54,9 @@ export function useFocuses(userId: string | undefined) {
 
   const createFocus = useMutation({
     mutationFn: async (input: { title: string; notes?: string }) => {
+      if (isDemoMode) {
+        return localStore.createFocus(input);
+      }
       const count = query.data?.length ?? 0;
       const { data, error } = await supabase
         .from('focuses')
@@ -67,6 +76,9 @@ export function useFocuses(userId: string | undefined) {
 
   const updateFocus = useMutation({
     mutationFn: async (input: { id: string; title?: string; notes?: string; archived?: boolean }) => {
+      if (isDemoMode) {
+        return localStore.updateFocus(input);
+      }
       const { id, ...rest } = input;
       const { data, error } = await supabase.from('focuses').update(rest).eq('id', id).select().single();
       if (error) throw error;
@@ -77,6 +89,9 @@ export function useFocuses(userId: string | undefined) {
 
   const createAttribute = useMutation({
     mutationFn: async (input: { focus_id: string; name: string; current_score?: number }) => {
+      if (isDemoMode) {
+        return localStore.createAttribute(input);
+      }
       const focus = query.data?.find((f) => f.id === input.focus_id);
       const sort_order = focus?.attributes.length ?? 0;
       const { data, error } = await supabase
@@ -103,6 +118,9 @@ export function useFocuses(userId: string | undefined) {
       current_score?: number;
       archived?: boolean;
     }) => {
+      if (isDemoMode) {
+        return localStore.updateAttribute(input);
+      }
       const { id, ...rest } = input;
       const { data, error } = await supabase.from('attributes').update(rest).eq('id', id).select().single();
       if (error) throw error;

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isDemoMode, DEMO_USER_ID } from '../lib/demoMode';
+import { localStore } from '../lib/localStore';
 import type { User, Session } from '@supabase/supabase-js';
 
 export interface AuthState {
@@ -7,6 +9,15 @@ export interface AuthState {
   session: Session | null;
   loading: boolean;
 }
+
+const demoUser = {
+  id: DEMO_USER_ID,
+  email: 'demo@local.baseline',
+  app_metadata: {},
+  user_metadata: {},
+  aud: 'authenticated',
+  created_at: new Date().toISOString(),
+} as User;
 
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
@@ -16,8 +27,8 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setAuthState({ user: null, session: null, loading: false });
+    if (isDemoMode) {
+      setAuthState({ user: demoUser, session: null, loading: false });
       return;
     }
 
@@ -77,6 +88,9 @@ export function useAuth() {
   };
 
   const signInWithEmail = async (email: string, password: string) => {
+    if (isDemoMode) {
+      return { data: null, error: new Error('Supabase is not configured') };
+    }
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
@@ -87,6 +101,9 @@ export function useAuth() {
   };
 
   const signUpWithEmail = async (email: string, password: string, fullName?: string) => {
+    if (isDemoMode) {
+      return { data: null, error: new Error('Supabase is not configured') };
+    }
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -101,6 +118,11 @@ export function useAuth() {
   };
 
   const signOut = async () => {
+    if (isDemoMode) {
+      await localStore.reset();
+      setAuthState({ user: demoUser, session: null, loading: false });
+      return { error: null };
+    }
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -115,7 +137,8 @@ export function useAuth() {
     signInWithEmail,
     signUpWithEmail,
     signOut,
-    isAuthenticated: !!authState.user,
+    isAuthenticated: isDemoMode || !!authState.user,
     isConfigured: isSupabaseConfigured,
+    isDemoMode,
   };
 }
