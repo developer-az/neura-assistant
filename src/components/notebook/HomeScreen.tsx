@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Modal,
   KeyboardAvoidingView,
@@ -14,7 +13,7 @@ import { Plus } from 'lucide-react-native';
 import type { FocusWithAttributes } from '../../types';
 import { AttributeRow } from './AttributeRow';
 import { Button, Input } from '../ui';
-import { DrawingOverlay } from '../drawing/DrawingOverlay';
+import { NotebookScroll } from './NotebookScroll';
 import { DrawingToolbar } from '../drawing/DrawingToolbar';
 import { useDrawing } from '../../hooks/useDrawing';
 import { Colors, Fonts, Spacing, Typography } from '../../utils/constants';
@@ -85,9 +84,12 @@ export function HomeScreen({
       </View>
 
       <View style={styles.page}>
-        <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 100 }]}
-          scrollEnabled={!drawing.drawMode}
+        <NotebookScroll
+          strokes={drawing.strokes}
+          drawMode={drawing.drawMode}
+          onStrokeEnd={drawing.addStroke}
+          contentContainerStyle={styles.scroll}
+          scrollBottomInset={insets.bottom + 100}
         >
           <Text style={styles.headline}>Your focuses</Text>
           <Text style={styles.lede}>
@@ -137,13 +139,7 @@ export function HomeScreen({
               <Text style={styles.addText}>Another focus</Text>
             </TouchableOpacity>
           ) : null}
-        </ScrollView>
-
-        <DrawingOverlay
-          strokes={drawing.strokes}
-          enabled={drawing.drawMode}
-          onStrokeEnd={drawing.addStroke}
-        />
+        </NotebookScroll>
       </View>
 
       <Modal visible={addOpen} animationType="fade" transparent onRequestClose={() => setAddOpen(false)}>

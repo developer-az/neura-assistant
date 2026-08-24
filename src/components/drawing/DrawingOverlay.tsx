@@ -234,7 +234,7 @@ export function DrawingOverlay({
       ref={containerRef}
       style={[styles.overlay, enabled ? styles.enabled : styles.passthrough]}
       onLayout={onLayout}
-      pointerEvents={enabled ? 'auto' : 'box-none'}
+      pointerEvents={enabled ? 'auto' : 'none'}
       {...(Platform.OS === 'web' ? webHandlers : panResponder.panHandlers)}
       collapsable={false}
     >
